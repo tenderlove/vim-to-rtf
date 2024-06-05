@@ -1,5 +1,9 @@
 vim9script
 
+# This class keeps track of the colors we've encountered while processing
+# We use it to emit a "color table" used by RTF.  Colored text needs to
+# refer to a color in the color map by index, so this class returns the
+# index corresponding to the text's color
 class ColorMap
   var indexMap: dict<any>
   var mapIndex: number
@@ -9,6 +13,7 @@ class ColorMap
     this.mapIndex = 1
   enddef
 
+  # Find the color table index for r, g, b
   def ColorIndex(r: number, b: number, g: number): number
     if !has_key(this.indexMap, r)
       this.indexMap[r] = {}
@@ -30,7 +35,8 @@ class ColorMap
     return greens[g]
   enddef
 
-  def RTFColorTable(): string
+  # Returns the sorted color map so we can transform it in to an RTF color table
+  def ColorIndexes(): list<any>
     var colormap = []
 
     for [red, greens] in items(this.indexMap)
@@ -43,16 +49,11 @@ class ColorMap
 
     sort(colormap, (i1, i2) => i1[3] - i2[3] )
 
-    var colors = []
-
-    for [r, g, b, i] in colormap
-      add(colors, "\\red" .. r .. "\\green" .. g .. "\\blue" .. b)
-    endfor
-
-    return "{\\colortbl;" .. join(colors, ";") .. ";}"
+    return colormap
   enddef
 endclass
 
+# Converts text to RTF
 class RTFHighlight
   var colorMap: ColorMap
 
@@ -61,32 +62,39 @@ class RTFHighlight
   enddef
 
   def Highlight(syntaxID: number, text: string): string
-    var colorIdx = this.ColorIndex(syntaxID, text)
+    var colorIdx = this._ColorIndex(syntaxID, text)
 
-    return this.EscapeChunk(colorIdx, text)
+    return this._EscapeChunk(colorIdx, text)
   enddef
 
-  def RGB(syntaxID: number, text: string): list<number>
+  def RTFColorTable(): string
+    var colormap = this.colorMap.ColorIndexes()
+    var colors = []
+
+    for [r, g, b, i] in colormap
+      add(colors, "\\red" .. r .. "\\green" .. g .. "\\blue" .. b)
+    endfor
+
+    return "{\\colortbl;" .. join(colors, ";") .. ";}"
+  enddef
+
+  def _RGB(syntaxID: number, text: string): list<number>
     var syntax = synIDtrans(syntaxID)
     var fg_color_str = strpart(synIDattr(syntax, "fg#"), 1, 6)
 
     var r = str2nr(strpart(fg_color_str, 0, 2), 16)
-    var b = str2nr(strpart(fg_color_str, 2, 2), 16)
-    var g = str2nr(strpart(fg_color_str, 4, 2), 16)
-    return [r, b, g]
+    var g = str2nr(strpart(fg_color_str, 2, 2), 16)
+    var b = str2nr(strpart(fg_color_str, 4, 2), 16)
+    return [r, g, b]
   enddef
 
-  def ColorIndex(syntaxID: number, text: string): number
-    var [r, b, g] =  this.RGB(syntaxID, text)
+  def _ColorIndex(syntaxID: number, text: string): number
+    var [r, b, g] =  this._RGB(syntaxID, text)
 
     return this.colorMap.ColorIndex(r, b, g)
   enddef
 
-  def RTFColorTable(): string
-    return this.colorMap.RTFColorTable()
-  enddef
-
-  def EscapeChunk(colorIdx: number, text: string): string
+  def _EscapeChunk(colorIdx: number, text: string): string
     if text !~ '\S'
       # If it's only whitespace, return whitespace
       return text
