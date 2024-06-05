@@ -20,7 +20,7 @@ class RTFEscape
         str = substitute(str, "[\\{}]", '\\\0', "g")
       endif
 
-      return "\\cf" .. colorIdx .. " " .. str
+      return "\\cf" .. colorIdx .. str
     endif
   enddef
 endclass
