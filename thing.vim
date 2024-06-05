@@ -1,30 +1,5 @@
 vim9script
 
-class RTFEscape
-  def new()
-  enddef
-
-  def EscapeChunk(colorIdx: number, text: string): string
-    if text !~ '\S'
-      # If it's only whitespace, return whitespace
-      return text
-    else
-      var str = text
-
-      if text =~ '^[0-9 ]'
-        # No numbers or spaces right after a command
-        str = " " .. text
-      endif
-
-      if str =~ '[\\{}]'
-        str = substitute(str, "[\\{}]", '\\\0', "g")
-      endif
-
-      return "\\cf" .. colorIdx .. str
-    endif
-  enddef
-endclass
-
 class ColorMap
   var indexMap: dict<any>
   var mapIndex: number
@@ -78,6 +53,60 @@ class ColorMap
   enddef
 endclass
 
+class RTFHighlight
+  var colorMap: ColorMap
+
+  def new()
+    this.colorMap = ColorMap.new()
+  enddef
+
+  def Highlight(syntaxID: number, text: string): string
+    var colorIdx = this.ColorIndex(syntaxID, text)
+
+    return this.EscapeChunk(colorIdx, text)
+  enddef
+
+  def RGB(syntaxID: number, text: string): list<number>
+    var syntax = synIDtrans(syntaxID)
+    var fg_color_str = strpart(synIDattr(syntax, "fg#"), 1, 6)
+
+    var r = str2nr(strpart(fg_color_str, 0, 2), 16)
+    var b = str2nr(strpart(fg_color_str, 2, 2), 16)
+    var g = str2nr(strpart(fg_color_str, 4, 2), 16)
+    return [r, b, g]
+  enddef
+
+  def ColorIndex(syntaxID: number, text: string): number
+    var [r, b, g] =  this.RGB(syntaxID, text)
+
+    return this.colorMap.ColorIndex(r, b, g)
+  enddef
+
+  def RTFColorTable(): string
+    return this.colorMap.RTFColorTable()
+  enddef
+
+  def EscapeChunk(colorIdx: number, text: string): string
+    if text !~ '\S'
+      # If it's only whitespace, return whitespace
+      return text
+    else
+      var str = text
+
+      if text =~ '^[0-9 ]'
+        # No numbers or spaces right after a command
+        str = " " .. text
+      endif
+
+      if str =~ '[\\{}]'
+        str = substitute(str, "[\\{}]", '\\\0', "g")
+      endif
+
+      return "\\cf" .. colorIdx .. str
+    endif
+  enddef
+endclass
+
 def ScanFile(start: number, finish: number): void
   var line = start
 
@@ -87,8 +116,7 @@ def ScanFile(start: number, finish: number): void
   appendbufline(newbuf, "$", "{\\fonttbl{\\f0 Inconsolata;}}")
   appendbufline(newbuf, "$", "{\\f0")
 
-  var colorMap = ColorMap.new()
-  var rtfEscape = RTFEscape.new()
+  var rtfHighlight = RTFHighlight.new()
 
   # For each line
   while line <= finish
@@ -108,23 +136,10 @@ def ScanFile(start: number, finish: number): void
         span += 1
       endwhile
 
-      var syntax = synIDtrans(syntaxID)
-      var fg_color_str = strpart(synIDattr(syntax, "fg#"), 1, 6)
-
-      var r = str2nr(strpart(fg_color_str, 0, 2), 16)
-      var b = str2nr(strpart(fg_color_str, 2, 2), 16)
-      var g = str2nr(strpart(fg_color_str, 4, 2), 16)
-
-      var fg_color = [r, b, g]
-
-      var colorIdx = colorMap.ColorIndex(r, b, g)
-
       # bytes is probably wrong. We need to test with multibyte chars
       var text = strpart(getline(line), column, bytes)
 
-      add(rtfLine, rtfEscape.EscapeChunk(colorIdx, text))
-
-      #echom "[" .. color_idx .. "] " .. fg_color_str .. string(fg_color) .. strpart(getline(line), column, bytes)
+      add(rtfLine, rtfHighlight.Highlight(syntaxID, text))
 
       column = span
 
@@ -134,7 +149,7 @@ def ScanFile(start: number, finish: number): void
     line = line + 1
   endwhile
 
-  appendbufline(newbuf, 1, colorMap.RTFColorTable())
+  appendbufline(newbuf, 1, rtfHighlight.RTFColorTable())
   appendbufline(newbuf, "$", "}")
   appendbufline(newbuf, "$", "}")
   execute ":sbu " .. newbuf
