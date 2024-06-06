@@ -168,6 +168,7 @@ export def ToRTF(start: number, finish: number): void
   appendbufline(newbuf, 1, rtfHighlight.RTFColorTable())
   appendbufline(newbuf, "$", "}")
   appendbufline(newbuf, "$", "}")
+
   silent exe ":sbu " .. newbuf
   silent exe ":w"
   silent exe "!cat " .. rtfFilename .. " | pbcopy"

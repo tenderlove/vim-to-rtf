@@ -2,8 +2,8 @@ vim9script
 
 import autoload "tortf.vim"
 
-func ToRTF() range
-  call tortf#ToRTF(a:firstline, a:lastline)
-endfunc
+def ToRTF(f: number, g: number)
+  call tortf#ToRTF(f, g)
+enddef
 
-command! -range=% ToRTF :<line1>,<line2>call ToRTF()
+command! -range=% ToRTF :call ToRTF(<line1>, <line2>)
