@@ -64,7 +64,16 @@ class RTFHighlight
   def Highlight(syntaxID: number, text: string): string
     var colorIdx = this._ColorIndex(syntaxID, text)
 
-    return this._EscapeChunk(colorIdx, text)
+    var syntax = synIDtrans(syntaxID)
+    var bold = synIDattr(syntax, "bold") == "1"
+    var italic = synIDattr(syntax, "italic") == "1"
+
+    if bold || italic
+      var header = "{" .. (bold ? "\\b1 " : "") .. (italic ? "\\i1 " : "")
+      return header .. this._EscapeChunk(colorIdx, text) .. "}"
+    else
+      return this._EscapeChunk(colorIdx, text)
+    endif
   enddef
 
   def RTFColorTable(): string
@@ -101,27 +110,23 @@ class RTFHighlight
     else
       var str = text
 
-      if text =~ '^[0-9 ]'
-        # No numbers or spaces right after a command
-        str = " " .. text
-      endif
-
       if str =~ '[\\{}]'
         str = substitute(str, "[\\{}]", '\\\0', "g")
       endif
 
-      return "\\cf" .. colorIdx .. str
+      return "\\cf" .. colorIdx .. " " .. str
     endif
   enddef
 endclass
 
-def ScanFile(start: number, finish: number): void
+export def ScanFile(start: number, finish: number): void
   var line = start
 
-  var newbuf = bufnr("temp", 1)
+  var rtfFilename = tempname() .. ".rtf"
+  var newbuf = bufnr(rtfFilename, 1)
   bufload(newbuf)
   setbufline(newbuf, 1, "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2636")
-  appendbufline(newbuf, "$", "{\\fonttbl{\\f0 Inconsolata;}}")
+  appendbufline(newbuf, "$", "{\\fonttbl{\\f0 SF Mono;}}")
   appendbufline(newbuf, "$", "{\\f0")
 
   var rtfHighlight = RTFHighlight.new()
@@ -160,9 +165,9 @@ def ScanFile(start: number, finish: number): void
   appendbufline(newbuf, 1, rtfHighlight.RTFColorTable())
   appendbufline(newbuf, "$", "}")
   appendbufline(newbuf, "$", "}")
-  execute ":sbu " .. newbuf
-enddef
-
-def g:AaronRTF(): void
-  ScanFile(1, line("$"))
+  silent exe ":sbu " .. newbuf
+  silent exe ":w"
+  silent exe "!cat " .. rtfFilename .. " | pbcopy"
+  silent bd!
+  call delete(rtfFilename)
 enddef
