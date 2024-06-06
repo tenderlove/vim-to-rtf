@@ -5,8 +5,7 @@ text and puts it in the paste buffer.
 
 Watch it in action:
 
-<video src="https://github.com/tenderlove/vim-to-rtf/assets/3124/f50894d9-1eff-44c6-9531-e85f15bc7171" width="300" />
-
+<video src="https://github.com/tenderlove/vim-to-rtf/assets/3124/f50894d9-1eff-44c6-9531-e85f15bc7171" width="300"></video>
 
 Inspired by [vim-copy-as-rtf](https://github.com/zerowidth/vim-copy-as-rtf).
 
