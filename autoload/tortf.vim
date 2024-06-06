@@ -133,6 +133,10 @@ export def ToRTF(start: number, finish: number): void
   appendbufline(newbuf, "$", "{\\fonttbl{\\f0 " .. font .. ";}}")
   appendbufline(newbuf, "$", "{\\f0")
 
+  if has_key(g:, "tortf_font_size")
+    appendbufline(newbuf, "$", "\\fs" .. g:tortf_font_size * 2)
+  endif
+
   var rtfHighlight = RTFHighlight.new()
 
   # For each line
