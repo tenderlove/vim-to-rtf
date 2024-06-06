@@ -31,3 +31,5 @@ To select lines and put in the paste buffer, just visual select, then do
 ```
 :ToRTF
 ```
+
+<video src="https://github.com/tenderlove/vim-to-rtf/assets/3124/f50894d9-1eff-44c6-9531-e85f15bc7171" width="300" />
