@@ -119,7 +119,7 @@ class RTFHighlight
   enddef
 endclass
 
-export def ScanFile(start: number, finish: number): void
+export def ToRTF(start: number, finish: number): void
   var line = start
 
   var rtfFilename = tempname() .. ".rtf"
