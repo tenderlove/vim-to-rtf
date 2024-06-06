@@ -128,7 +128,7 @@ export def ToRTF(start: number, finish: number): void
   bufload(newbuf)
   setbufline(newbuf, 1, "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2636")
 
-  var font = get(g:, 'tortf_font', "Arial")
+  var font = get(g:, 'tortf_font', "Courier")
 
   appendbufline(newbuf, "$", "{\\fonttbl{\\f0 " .. font .. ";}}")
   appendbufline(newbuf, "$", "{\\f0")

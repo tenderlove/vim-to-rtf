@@ -38,7 +38,7 @@ To select lines and put in the paste buffer, just visual select, then do
 
 ## Configuration
 
-The default font it uses is `Arial`, but you can change it like this:
+The default font it uses is `Courier`, but you can change it like this:
 
 ```vim
 g:tortf_font = "SF Mono"
