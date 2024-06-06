@@ -126,7 +126,10 @@ export def ToRTF(start: number, finish: number): void
   var newbuf = bufnr(rtfFilename, 1)
   bufload(newbuf)
   setbufline(newbuf, 1, "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2636")
-  appendbufline(newbuf, "$", "{\\fonttbl{\\f0 SF Mono;}}")
+
+  var font = get(g:, 'tortf_font', "Arial")
+
+  appendbufline(newbuf, "$", "{\\fonttbl{\\f0 " .. font .. ";}}")
   appendbufline(newbuf, "$", "{\\f0")
 
   var rtfHighlight = RTFHighlight.new()
