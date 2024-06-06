@@ -90,7 +90,32 @@ class RTFHighlight
         str = substitute(str, "[\\{}]", '\\\0', "g")
       endif
 
+      # If there are non-ascii characters, we need to escape them
+      if str =~ '[^\U0000-\U007F]'
+        str = substitute(str, '[^\U0000-\U007F]',
+          (m) => this._ConvertUnicode(m[0]), "g")
+      endif
+
       return "\\cf" .. colorIdx .. " " .. str
+    endif
+  enddef
+
+  def _ConvertUnicode(char: string): string
+    var value = char2nr(char, 1)
+
+    # If the character is too big, encode it as a surrogate pair
+    if value > 0xFFFF
+      value = value - 0x10000
+      var upper = or(0xD800, and(value >> 10, 0x3FF))
+      var lower = or(0xDC00, and(0x3FF, value))
+      return "\\u" .. upper .. " \\u" .. lower .. "?"
+    else
+      # RTF uses signed integers, so if it's too big, encode it as negative
+      if value > 0x7FFF
+        return "\\u" .. (value - 0x10000) .. "?"
+      else
+        return "\\u" .. value .. "?"
+      endif
     endif
   enddef
 endclass
@@ -128,7 +153,7 @@ export def ToRTF(start: number, finish: number): void
         span += 1
       endwhile
 
-      # bytes is probably wrong. We need to test with multibyte chars
+      # synID is per byte, so we need to take byte slices
       var text = strpart(getline(line), column, bytes)
 
       add(rtfLine, rtfHighlight.Highlight(syntaxID, text))
