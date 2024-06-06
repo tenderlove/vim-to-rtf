@@ -14,40 +14,20 @@ class ColorMap
   enddef
 
   # Find the color table index for r, g, b
-  def ColorIndex(r: number, b: number, g: number): number
-    if !has_key(this.indexMap, r)
-      this.indexMap[r] = {}
-    endif
-
-    var blues = this.indexMap[r]
-
-    if !has_key(blues, b)
-      blues[b] = {}
-    endif
-
-    var greens = blues[b]
-
-    if !has_key(greens, g)
-      greens[g] = this.mapIndex
+  def ColorIndex(rgb: string): number
+    if !has_key(this.indexMap, rgb)
+      this.indexMap[rgb] = this.mapIndex
       this.mapIndex = this.mapIndex + 1
     endif
 
-    return greens[g]
+    return this.indexMap[rgb]
   enddef
 
   # Returns the sorted color map so we can transform it in to an RTF color table
   def ColorIndexes(): list<any>
-    var colormap = []
+    var colormap = items(this.indexMap)
 
-    for [red, greens] in items(this.indexMap)
-      for [green, blues] in items(greens)
-        for [blue, index] in items(blues)
-          add(colormap, [red, green, blue, index])
-        endfor
-      endfor
-    endfor
-
-    sort(colormap, (i1, i2) => i1[3] - i2[3] )
+    sort(colormap, (i1, i2) => i1[1] - i2[1] )
 
     return colormap
   enddef
@@ -80,27 +60,23 @@ class RTFHighlight
     var colormap = this.colorMap.ColorIndexes()
     var colors = []
 
-    for [r, g, b, i] in colormap
+    for [rgb, i] in colormap
+      var r = str2nr(strpart(rgb, 0, 2), 16)
+      var g = str2nr(strpart(rgb, 2, 2), 16)
+      var b = str2nr(strpart(rgb, 4, 2), 16)
       add(colors, "\\red" .. r .. "\\green" .. g .. "\\blue" .. b)
     endfor
 
     return "{\\colortbl;" .. join(colors, ";") .. ";}"
   enddef
 
-  def _RGB(syntaxID: number, text: string): list<number>
+  def _RGB(syntaxID: number, text: string): string
     var syntax = synIDtrans(syntaxID)
-    var fg_color_str = strpart(synIDattr(syntax, "fg#"), 1, 6)
-
-    var r = str2nr(strpart(fg_color_str, 0, 2), 16)
-    var g = str2nr(strpart(fg_color_str, 2, 2), 16)
-    var b = str2nr(strpart(fg_color_str, 4, 2), 16)
-    return [r, g, b]
+    return strpart(synIDattr(syntax, "fg#"), 1, 6)
   enddef
 
   def _ColorIndex(syntaxID: number, text: string): number
-    var [r, b, g] =  this._RGB(syntaxID, text)
-
-    return this.colorMap.ColorIndex(r, b, g)
+    return this.colorMap.ColorIndex(this._RGB(syntaxID, text))
   enddef
 
   def _EscapeChunk(colorIdx: number, text: string): string
